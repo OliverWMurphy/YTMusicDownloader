@@ -1,13 +1,16 @@
+import asyncio
 import os
 import subprocess
-import asyncio
-from pytubefix import YouTube as YT, Playlist as PL
+
 from fastapi import BackgroundTasks
 from fastapi.responses import FileResponse
+from HiddenPrints import HiddenPrints
+from pytubefix import YouTube as YT, Playlist as PL
+from typing import Union, List
 
 
 
-def single(URI: str)  -> str:  
+async def single(URI: str, splitTracksFromDesc: bool)  -> str:  
     video = YT(URI)
     
     audio = video.streams.get_audio_only()
@@ -22,11 +25,11 @@ def single(URI: str)  -> str:
     
     return audio.default_filename
 
-def playlist(URI: str, name: str) -> bool:
+async def playlist(URI: str, splitTracksFromDesc: List[bool]) -> bool:
     playlist = PL(URI)
     
-    for URI in playlist.video_urls:
-        single(URI)
+    for i in range(len(playlist.video_urls)):
+        await single(playlist.video_urls[i],splitTracksFromDesc[i])
     return True
 
 def id_to_URI(vid_id: str)-> str:
@@ -36,12 +39,12 @@ def download_mp3(file_path,new_name):
     if not os.path.exists(file_path):
         return {"error": "File not found",
                 "filePath": file_path}
-    
-    subprocess.run([
-    'ffmpeg',
-    '-i', os.path.join(file_path),
-    os.path.join(new_name)
-])
+
+    subprocess.run(
+        ["ffmpeg", "-i", os.path.join(file_path), os.path.join(new_name)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.STDOUT,
+    )
 
 
     # Use FileResponse to return the file, with headers to prompt download
