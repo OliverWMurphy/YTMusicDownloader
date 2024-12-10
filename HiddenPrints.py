@@ -1,4 +1,5 @@
-import os, sys
+import os
+import sys
 
 #https://stackoverflow.com/questions/8391411/how-to-block-calls-to-print
 # By Alexander C
