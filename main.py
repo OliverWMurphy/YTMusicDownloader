@@ -23,27 +23,31 @@ app.add_middleware(
 async def download_single(vid_id: str, splitTracksFromChapters: bool = False):
     
     print("STARTING")
-    URL = dllogic.id_to_URI(vid_id)
+    URL = dllogic.id_to_URL(vid_id)
     print(f"Obtained URL: {URL}")
     video = await dllogic.getVideo(URL)
-    result = await dllogic.getAudio(video)
-    print(result)
+    audioName = await dllogic.getAudio(video)
+    print(audioName)
 
-    if result == "":
+    if audioName == "":
         raise HTTPException(status_code=400, detail = "Error processing video")
 
-    new_name = result[:-4] + ".mp3"
-    dllogic.create_mp3(result, new_name)
-    background_tasks.add_task(dllogic.delete_file, result)
+    newName = audioName[:-4] + ".mp3"
+    dllogic.create_mp3(audioName, newName)
     
     if splitTracksFromChapters:
-        pass
+        print("Splitting")
+        chapters = video.chapters
+        dllogic.splitAudio(newName,chapters)
         
+    background_tasks.add_task(dllogic.delete_file, audioName)
+    
+    print("About to download")
     # Use FileResponse to return the file, with headers to prompt download
     return FileResponse(
-        path=result,
+        path=newName,
         media_type="video/mp4",
-        filename=new_name,  # This sets the name of the file for download
+        filename=newName,  # This sets the name of the file for download
     )
 
 #
