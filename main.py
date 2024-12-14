@@ -1,5 +1,7 @@
 
+import os
 import dllogic
+import utils
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,65 +21,31 @@ app.add_middleware(
 )
 
 #splitTracks: Union[bool, None]
-@app.get("/api/single/{vid_id}")
-async def download_single(vid_id: str, splitTracksFromChapters: bool = False):
+@app.get("/api/single/{videoId}")
+async def download_single(videoId: str, splitTracksFromChapters: bool = False):
     
+    utils.ForceMakeEmptyDir(videoId)
     print("STARTING")
-    URL = dllogic.id_to_URL(vid_id)
+    URL = dllogic.id_to_URL(videoId)
     print(f"Obtained URL: {URL}")
     video = await dllogic.getVideo(URL)
-    audioName = await dllogic.getAudio(video)
+    audioName = await dllogic.getAudio(video,videoId)
     print(audioName)
-
-    if audioName == "":
-        raise HTTPException(status_code=400, detail = "Error processing video")
-
-    newName = audioName[:-4] + ".mp3"
-    dllogic.create_mp3(audioName, newName)
+    toDownload = audioName[:-4] + ".mp3"
+    saveTo = os.path.join(videoId,audioName)
+    dllogic.create_mp3(saveTo, toDownload)
     
     if splitTracksFromChapters:
         print("Splitting")
         chapters = video.chapters
-        dllogic.splitAudio(newName,chapters)
+        toDownload = dllogic.splitAudio(toDownload,chapters)
         
     background_tasks.add_task(dllogic.delete_file, audioName)
     
     print("About to download")
     # Use FileResponse to return the file, with headers to prompt download
     return FileResponse(
-        path=newName,
+        path=toDownload,
         media_type="video/mp4",
-        filename=newName,  # This sets the name of the file for download
+        filename=toDownload,  # This sets the name of the file for download
     )
-
-#
-# Tutorial stuff here
-from enum import Enum
-
-class ModelName(str, Enum):
-    alexnet = "alexnet"
-    resnet = "resnet"
-    lenet = "lenet"
-
-@app.get("/models/{model_name}")
-async def get_model(model_name: ModelName):
-    if model_name is ModelName.alexnet:
-        return {"model_name": model_name, "message": "Deep Learning FTW!"}
-
-    if model_name.value == "lenet":
-        return {"model_name": model_name, "message": "LeCNN all the images"}
-
-    return {"model_name": model_name, "message": "Have some residuals"}
-
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
-
-@app.get("/files/{file_path:path}")
-async def read_file(file_path: str):
-    return {"file_path": file_path}
-
-@app.get("/items/{item_id}")
-async def read_user_item(item_id: str, needy: str):
-    item = {"item_id": item_id, "needy": needy}
-    return item
