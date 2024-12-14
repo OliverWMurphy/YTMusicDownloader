@@ -31,21 +31,19 @@ async def download_single(videoId: str, splitTracksFromChapters: bool = False):
     video = await dllogic.getVideo(URL)
     audioName = await dllogic.getAudio(video,videoId)
     print(audioName)
-    toDownload = audioName[:-4] + ".mp3"
-    saveTo = os.path.join(videoId,audioName)
-    dllogic.create_mp3(saveTo, toDownload)
+    targetLocation = dllogic.create_mp3(audioName,videoId)
     
     if splitTracksFromChapters:
         print("Splitting")
         chapters = video.chapters
-        toDownload = dllogic.splitAudio(toDownload,chapters)
-        
+        targetLocation = dllogic.splitAudio(targetLocation,chapters)
+    
     background_tasks.add_task(dllogic.delete_file, audioName)
     
     print("About to download")
     # Use FileResponse to return the file, with headers to prompt download
     return FileResponse(
-        path=toDownload,
+        path=targetLocation,
         media_type="video/mp4",
-        filename=toDownload,  # This sets the name of the file for download
+        filename=targetLocation,  # This sets the name of the file for download
     )

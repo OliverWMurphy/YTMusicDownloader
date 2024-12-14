@@ -36,20 +36,23 @@ async def getAudio(video: YT, path: str)  -> str:
 def id_to_URL(vid_id: str)-> str:
     return "https://www.youtube.com/watch?v=" + vid_id
 
-def create_mp3(file_path: str, new_name: str):
-    if not os.path.exists(file_path):
-        return {"error": "File Path found",
-                "filePath": file_path}
+def create_mp3(audioName: str, fileDestination: str) -> str:
+    if not os.path.exists(fileDestination):
+        raise Exception
+
+    fileName = os.path.splitext(audioName)[0]
+    mp3File = fileName + ".mp3"
     print("Starting FFMPEG")
-    print(f"{file_path} -> {new_name}")
+    print(f"{fileDestination}/{audioName} -> {fileDestination}/{mp3File}")
+
     subprocess.run(
-        ["ffmpeg", "-i", os.path.join(file_path), os.path.join(new_name)]#,
-        #  stdout=subprocess.DEVNULL,
-        # stderr=subprocess.STDOUT,
+        ["ffmpeg", "-i", os.path.join(fileDestination,audioName), os.path.join(fileDestination,mp3File)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.STDOUT,
     )
     print("Ending FFMPEG")
 
-    return
+    return os.path.join(fileDestination,mp3File)
 
 def splitAudio(audioName: str, chapters: List[Chapter]) -> str:
     folderName = os.path.splitext(audioName)[0]
@@ -71,9 +74,12 @@ def splitAudio(audioName: str, chapters: List[Chapter]) -> str:
         print(f"Running {ffmpeg}" )
         subprocess.run(
             ffmpeg,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.STDOUT,
         )
         
     zipName = shutil.make_archive(folderName, 'zip', folderName)
+    shutil.rmtree(folderName)
     return zipName    
 
 async def delete_file(file_path: str):
